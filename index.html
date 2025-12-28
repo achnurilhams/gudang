@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GudangSmart | Input Order</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .input-focus:focus { transform: translateY(-2px); transition: all 0.3s; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 py-4 px-6">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-900 leading-none">Pojok Kurma</h1>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Laporan Tamu Gudang</span>
+                </div>
+            </div>
+            <a href="data-tamu.html" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-indigo-400"></i> Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto p-4 md:pt-12">
+
+        <form id="orderForm" class="space-y-6">
+            <div class="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200">
+                <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-8 flex items-center gap-2">
+                    <i class="fas fa-id-badge"></i> Profil Supplier
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2.5 ml-1">Nama Perusahaan</label>
+                        <input type="text" id="supplier" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all font-medium" placeholder="ex: PT. Sumber Makmur">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2.5 ml-1">Sales (PIC)</label>
+                        <input type="text" id="sales" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all font-medium" placeholder="Nama Lengkap">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2.5 ml-1">WhatsApp</label>
+                        <input type="tel" id="phone" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all font-medium" placeholder="0812xxxxxxxx">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-list-check"></i> Manifes & Harga
+                    </h3>
+                    <button type="button" onclick="addItemRow()" class="text-[10px] font-black bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
+                        <i class="fas fa-plus mr-1"></i> Tambah Item
+                    </button>
+                </div>
+
+                <div id="itemsContainer" class="space-y-4">
+                    <div class="hidden md:flex gap-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        <div class="flex-grow">Nama Barang</div>
+                        <div class="w-24 text-center">Qty</div>
+                        <div class="w-40">Harga Satuan (Rp)</div>
+                        <div class="w-32 text-right">Subtotal</div>
+                        <div class="w-10"></div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-3 item-row group animate-in fade-in duration-300 bg-slate-50 md:bg-transparent p-4 md:p-0 rounded-2xl">
+                        <input type="text" placeholder="Nama Barang" required class="flex-grow px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-medium">
+                        
+                        <div class="flex gap-2">
+                            <input type="number" oninput="calculateRow(this)" placeholder="Qty" required class="w-20 md:w-24 px-2 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all text-center font-black qty-input" value="1">
+                            
+                            <input type="number" oninput="calculateRow(this)" placeholder="Harga" required class="flex-grow md:w-40 px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-bold price-input">
+                            
+                            <div class="hidden md:flex items-center justify-end w-32 font-black text-slate-700 subtotal-text">Rp 0</div>
+                            
+                            <button type="button" onclick="this.closest('.item-row').remove(); calculateGrandTotal();" class="text-slate-300 hover:text-red-500 px-2 transition-colors">
+                                <i class="fas fa-times-circle text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-6 border-t border-dashed border-slate-200 flex justify-between items-center px-2">
+                    <span class="text-sm font-black text-slate-400 uppercase tracking-widest">Total Keseluruhan</span>
+                    <span id="grandTotalDisplay" class="text-2xl font-black text-indigo-600">Rp 0</span>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm uppercase tracking-widest mt-8">
+                Simpan
+            </button>
+            <p id="msg" class="hidden text-center text-emerald-600 font-black bg-emerald-50 py-4 rounded-2xl border border-emerald-100 animate-bounce">
+                <i class="fas fa-check-double mr-2"></i> Transaksi Berhasil Disimpan!
+            </p>
+        </form>
+    </main>
+
+    <script>
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        }
+
+        function calculateRow(input) {
+            const row = input.closest('.item-row');
+            const qty = row.querySelector('.qty-input').value || 0;
+            const price = row.querySelector('.price-input').value || 0;
+            const subtotal = qty * price;
+            
+            row.querySelector('.subtotal-text').innerText = formatRupiah(subtotal);
+            calculateGrandTotal();
+        }
+
+        function calculateGrandTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const qty = row.querySelector('.qty-input').value || 0;
+                const price = row.querySelector('.price-input').value || 0;
+                total += (qty * price);
+            });
+            document.getElementById('grandTotalDisplay').innerText = formatRupiah(total);
+        }
+
+        function addItemRow() {
+            const container = document.getElementById('itemsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'flex flex-col md:flex-row gap-3 item-row animate-in slide-in-from-top-2 duration-300 bg-slate-50 md:bg-transparent p-4 md:p-0 rounded-2xl';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Nama Barang" required class="flex-grow px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-medium">
+                <div class="flex gap-2">
+                    <input type="number" oninput="calculateRow(this)" placeholder="Qty" required class="w-20 md:w-24 px-2 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all text-center font-black qty-input" value="1">
+                    <input type="number" oninput="calculateRow(this)" placeholder="Harga" required class="flex-grow md:w-40 px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-bold price-input">
+                    <div class="hidden md:flex items-center justify-end w-32 font-black text-slate-700 subtotal-text">Rp 0</div>
+                    <button type="button" onclick="this.closest('.item-row').remove(); calculateGrandTotal();" class="text-slate-300 hover:text-red-500 px-2 transition-colors">
+                        <i class="fas fa-times-circle text-lg"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(newRow);
+        }
+
+        document.getElementById('orderForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const items = [];
+            let grandTotal = 0;
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const qty = parseFloat(inputs[1].value);
+                const price = parseFloat(inputs[2].value);
+                const subtotal = qty * price;
+                
+                items.push({ 
+                    name: inputs[0].value, 
+                    qty: qty, 
+                    price: price,
+                    subtotal: subtotal 
+                });
+                grandTotal += subtotal;
+            });
+
+            const orders = JSON.parse(localStorage.getItem('warehouse_orders')) || [];
+            const newOrder = {
+                id: Math.floor(100000 + Math.random() * 900000),
+                supplier: document.getElementById('supplier').value,
+                sales: document.getElementById('sales').value,
+                phone: document.getElementById('phone').value,
+                items: items,
+                total: grandTotal,
+                date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            orders.push(newOrder);
+            localStorage.setItem('warehouse_orders', JSON.stringify(orders));
+            
+            document.getElementById('orderForm').reset();
+            document.getElementById('grandTotalDisplay').innerText = "Rp 0";
+            const msg = document.getElementById('msg');
+            msg.classList.remove('hidden');
+            setTimeout(() => { msg.classList.add('hidden'); location.reload(); }, 2000);
+        });
+    </script>
+</body>
+</html>
