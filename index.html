@@ -1,191 +1,1011 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GudangSmart | Input Order</title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Map Explorer Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet"/>
+    <link href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" rel="stylesheet"/>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
-        .input-focus:focus { transform: translateY(-2px); transition: all 0.3s; }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        :root{
+            --ink: #0f172a;
+            --accent: #4f46e5;
+            --accent-2: #7c3aed;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; color: var(--ink); }
+        h1,h2,h3,.brand { font-family: 'Manrope', sans-serif; }
+        #map { height: 100vh; width: 100%; z-index: 0; background: #e7ebf3; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 30px -8px rgba(15,23,42,0.18), 0 2px 8px -2px rgba(15,23,42,0.08);
+        }
+        .leaflet-routing-container { display: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .leaflet-control-zoom, .leaflet-control-layers { border-radius: 14px !important; overflow: hidden; box-shadow: 0 6px 20px -6px rgba(15,23,42,0.25) !important; border: none !important; }
+
+        .poi-icon-wrap {
+            display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 50% 50% 50% 4px;
+            transform: rotate(-45deg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border: 2px solid white;
+        }
+        .poi-icon-wrap .material-symbols-outlined { transform: rotate(45deg); color: white; font-size: 18px; }
+
+        .manual-icon-wrap {
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 50% 50% 50% 4px;
+            transform: rotate(-45deg);
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            box-shadow: 0 4px 12px rgba(79,70,229,0.5);
+            border: 2px solid white;
+        }
+        .manual-icon-wrap .material-symbols-outlined { transform: rotate(45deg); color: white; font-size: 16px; }
+
+        .poi-card { transition: all 0.15s ease; }
+        .poi-card:active { transform: scale(0.98); }
+
+        .cat-btn { transition: all 0.15s ease; }
+        .cat-btn:hover { transform: translateY(-1px); }
+        .cat-btn.active-cat {
+            box-shadow: inset 0 0 0 2px currentColor;
+            background: currentColor;
+        }
+        .cat-btn.active-cat .cat-label, .cat-btn.active-cat .material-symbols-outlined { color: white !important; filter: brightness(3); }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        }
+        .primary-btn:hover { filter: brightness(1.08); }
+        .primary-btn:active { transform: scale(0.98); }
+
+        .icon-btn { transition: all 0.15s ease; }
+        .icon-btn:hover { background: #f1f5f9; }
+        .icon-btn:active { transform: scale(0.94); }
+
+        .del-btn { transition: all 0.15s ease; }
+        .del-btn:hover { background: #fee2e2; color: #dc2626; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.5); opacity: 0.8; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        .pulse-ring { animation: pulse-ring 1.8s cubic-bezier(0.2,0.6,0.35,1) infinite; }
+
+        .spinner {
+            width: 16px; height: 16px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-up { animation: slide-up 0.25s ease both; }
+
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+            z-index: 60; opacity: 0; pointer-events: none; transition: all 0.3s ease;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        #legend-panel {
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            transform-origin: bottom left;
+        }
+        #legend-panel.hidden-legend { opacity: 0; transform: scale(0.9) translateY(8px); pointer-events: none; }
+
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                transform: translateY(calc(100% - 84px));
+                z-index: 40;
+                border-radius: 28px 28px 0 0;
+                max-height: 84vh;
+            }
+            .info-panel.expanded { transform: translateY(0); }
+            #legend-panel { left: 12px; bottom: 12px; }
+        }
+        @media (min-width: 769px) {
+            .info-panel {
+                position: fixed;
+                top: 20px; left: 20px; width: 380px;
+                max-height: calc(100vh - 40px);
+                border-radius: 28px;
+                z-index: 40;
+            }
+            #legend-panel { left: 420px; bottom: 20px; }
+        }
     </style>
 </head>
-<body class="min-h-screen pb-12">
-    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 py-4 px-6">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div>
-                    <h1 class="text-xl font-extrabold text-slate-900 leading-none">Pojok Kurma</h1>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Laporan Tamu Gudang</span>
+<body class="bg-slate-100 overflow-hidden">
+
+    <div class="fixed top-4 left-0 right-0 px-4 md:left-[400px] md:right-4 z-30 pointer-events-none">
+        <div class="max-w-2xl mx-auto md:mx-0 pointer-events-auto">
+            <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2">
+                <div class="flex-1 relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                    <input id="search-input" type="text" placeholder="Cari lokasi, alamat, atau tempat..."
+                           class="w-full bg-transparent border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none">
                 </div>
+                <button onclick="searchLocation()" id="search-btn" class="primary-btn text-white px-4 py-2.5 rounded-xl transition font-bold text-sm flex items-center gap-2 shadow-lg shadow-indigo-200">
+                    <span id="search-btn-text">Cari</span>
+                </button>
             </div>
-            <a href="data-tamu.html" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2">
-                <i class="fas fa-chart-pie text-indigo-400"></i> Dashboard
-            </a>
+
+            <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-2">
+                <button data-cat="restaurant" style="color:#ea580c" onclick="findNearby('restaurant', 'Kuliner', this)" class="cat-btn glass-panel px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">restaurant</span> <span class="cat-label">Kuliner</span>
+                </button>
+                <button data-cat="fuel" style="color:#2563eb" onclick="findNearby('fuel', 'SPBU', this)" class="cat-btn glass-panel px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">local_gas_station</span> <span class="cat-label">SPBU</span>
+                </button>
+                <button data-cat="worship" style="color:#16a34a" onclick="findNearby('worship', 'Masjid', this)" class="cat-btn glass-panel px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">mosque</span> <span class="cat-label">Masjid</span>
+                </button>
+                <button data-cat="hotel" style="color:#9333ea" onclick="findNearby('hotel', 'Hotel', this)" class="cat-btn glass-panel px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">hotel</span> <span class="cat-label">Hotel</span>
+                </button>
+                <button id="toggle-drag" class="bg-slate-900 px-4 py-2 rounded-full text-xs font-bold text-white flex items-center gap-2 shadow-lg shrink-0 transition">
+                    <span class="material-symbols-outlined text-[18px]">pan_tool</span> Geser: OFF
+                </button>
+                <button onclick="locateMe()" class="glass-panel px-4 py-2 rounded-full text-xs font-bold text-slate-700 flex items-center gap-2 shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">my_location</span> Lokasi Saya
+                </button>
+            </div>
         </div>
-    </nav>
+    </div>
 
-    <main class="max-w-4xl mx-auto p-4 md:pt-12">
+    <div id="map"></div>
 
-        <form id="orderForm" class="space-y-6">
-            <div class="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200">
-                <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-8 flex items-center gap-2">
-                    <i class="fas fa-id-badge"></i> Profil Supplier
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="md:col-span-2">
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2.5 ml-1">Nama Perusahaan</label>
-                        <input type="text" id="supplier" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all font-medium" placeholder="ex: PT. Sumber Makmur">
+    <div id="toast" class="glass-panel px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-700"></div>
+
+    <!-- NAV BAR (mode navigasi langsung) -->
+    <div id="nav-bar" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden w-[92%] max-w-md">
+        <div class="rounded-3xl p-4 flex items-center gap-3 shadow-2xl" style="background: linear-gradient(135deg, var(--accent), var(--accent-2));">
+            <div class="shrink-0 w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-2xl" id="nav-icon">navigation</span>
+            </div>
+            <div class="min-w-0 flex-1 text-white">
+                <p class="text-sm font-black leading-tight truncate" id="nav-instruction">Menyiapkan navigasi...</p>
+                <p class="text-[11px] font-semibold opacity-80" id="nav-subinfo">- m • Langkah -</p>
+            </div>
+            <button onclick="toggleVoice()" id="nav-voice-btn" class="shrink-0 w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white icon-btn">
+                <span class="material-symbols-outlined text-[18px]">volume_up</span>
+            </button>
+            <button onclick="stopNavigation()" class="shrink-0 w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white icon-btn">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- LEGEND -->
+    <button id="legend-toggle-btn" onclick="toggleLegend()" class="fixed z-40 glass-panel w-11 h-11 rounded-2xl flex items-center justify-center icon-btn"
+            style="left: 20px; bottom: 20px;">
+        <span class="material-symbols-outlined text-slate-700">layers</span>
+    </button>
+
+    <div id="legend-panel" class="hidden-legend fixed z-40 glass-panel rounded-2xl p-4 w-56" style="bottom: 76px;">
+        <div class="flex items-center justify-between mb-3">
+            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-500">Legenda Peta</h4>
+            <button onclick="toggleLegend()" class="icon-btn w-6 h-6 rounded-full flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px] text-slate-400">close</span>
+            </button>
+        </div>
+        <div class="space-y-2.5">
+            <div class="flex items-center gap-2.5">
+                <span class="legend-dot" style="background:#2563eb"></span>
+                <span class="text-xs font-semibold text-slate-700">Lokasi saya (GPS)</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <span class="legend-dot" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)"></span>
+                <span class="text-xs font-semibold text-slate-700">Marker manual</span>
+            </div>
+            <div class="h-px bg-slate-200 my-1"></div>
+            <div class="flex items-center gap-2.5">
+                <span class="legend-dot" style="background:#ea580c"></span>
+                <span class="text-xs font-semibold text-slate-700">Kuliner</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <span class="legend-dot" style="background:#2563eb"></span>
+                <span class="text-xs font-semibold text-slate-700">SPBU</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <span class="legend-dot" style="background:#16a34a"></span>
+                <span class="text-xs font-semibold text-slate-700">Masjid</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <span class="legend-dot" style="background:#9333ea"></span>
+                <span class="text-xs font-semibold text-slate-700">Hotel</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="info-panel" class="info-panel glass-panel overflow-hidden flex flex-col">
+        <div class="mobile-handle w-full py-3 flex flex-col items-center cursor-pointer md:hidden shrink-0" onclick="toggleSheet()">
+            <div class="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+        </div>
+
+        <div class="p-6 overflow-y-auto no-scrollbar">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="brand text-xl font-extrabold text-slate-800 tracking-tight">Map Explorer</h2>
+                    <p class="text-xs text-slate-500 font-medium" id="status-text">Ketuk peta untuk tambah marker</p>
+                </div>
+                <div id="loading-indicator" class="hidden">
+                    <div class="w-8 h-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+                </div>
+            </div>
+
+            <div class="rounded-3xl p-5 text-white mb-6 shadow-lg shadow-indigo-200" style="background: linear-gradient(135deg, var(--accent), var(--accent-2));">
+                <div class="flex items-start gap-4">
+                    <div class="bg-white/20 p-2 rounded-xl shrink-0">
+                        <span class="material-symbols-outlined">map</span>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2.5 ml-1">Sales (PIC)</label>
-                        <input type="text" id="sales" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all font-medium" placeholder="Nama Lengkap">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2.5 ml-1">WhatsApp</label>
-                        <input type="tel" id="phone" required class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-500 transition-all font-medium" placeholder="0812xxxxxxxx">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[10px] uppercase font-black opacity-70 tracking-widest mb-1">Lokasi Terpilih</p>
+                        <p class="text-sm font-semibold leading-relaxed break-words" id="address-text">Belum ada lokasi dipilih.</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-8">
-                    <h3 class="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
-                        <i class="fas fa-list-check"></i> Manifes & Harga
-                    </h3>
-                    <button type="button" onclick="addItemRow()" class="text-[10px] font-black bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
-                        <i class="fas fa-plus mr-1"></i> Tambah Item
+            <div class="mb-4">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Mode Perjalanan</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button data-profile="car" onclick="setProfile('car', this)" class="profile-btn bg-slate-900 text-white rounded-xl py-2.5 flex flex-col items-center gap-1 transition">
+                        <span class="material-symbols-outlined text-[20px]">directions_car</span>
+                        <span class="text-[10px] font-bold">Mobil</span>
+                    </button>
+                    <button data-profile="motor" onclick="setProfile('motor', this)" class="profile-btn bg-slate-100 text-slate-500 rounded-xl py-2.5 flex flex-col items-center gap-1 transition">
+                        <span class="material-symbols-outlined text-[20px]">motorcycle</span>
+                        <span class="text-[10px] font-bold">Motor</span>
+                    </button>
+                    <button data-profile="walk" onclick="setProfile('walk', this)" class="profile-btn bg-slate-100 text-slate-500 rounded-xl py-2.5 flex flex-col items-center gap-1 transition">
+                        <span class="material-symbols-outlined text-[20px]">directions_walk</span>
+                        <span class="text-[10px] font-bold">Jalan</span>
                     </button>
                 </div>
+            </div>
 
-                <div id="itemsContainer" class="space-y-4">
-                    <div class="hidden md:flex gap-3 px-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        <div class="flex-grow">Nama Barang</div>
-                        <div class="w-24 text-center">Qty</div>
-                        <div class="w-40">Harga Satuan (Rp)</div>
-                        <div class="w-32 text-right">Subtotal</div>
-                        <div class="w-10"></div>
+            <div class="space-y-3 mb-6">
+                <button onclick="startRouting()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-slate-800 transition active:scale-95">
+                    <span class="material-symbols-outlined">directions_car</span> Tampilkan Rute Ke Sini
+                </button>
+                <button onclick="startNavigation()" class="w-full primary-btn text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 transition active:scale-95">
+                    <span class="material-symbols-outlined">navigation</span> Mulai Navigasi
+                </button>
+                <button onclick="resetMarkers()" class="w-full bg-red-50 text-red-600 font-bold py-3 rounded-2xl flex items-center justify-center gap-3 hover:bg-red-100 transition border border-red-100 active:scale-95">
+                    <span class="material-symbols-outlined">delete_sweep</span> Reset Peta
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                    <p class="text-lg font-black text-indigo-600" id="marker-count">0</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Marker</p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                    <p class="text-sm font-black text-slate-700 mt-1" id="distance-summary">-</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Jarak Rute</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 mb-6">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estimasi Waktu</span>
+                        <span class="text-xs font-bold text-indigo-600" id="distance-info">- KM</span>
                     </div>
-
-                    <div class="flex flex-col md:flex-row gap-3 item-row group animate-in fade-in duration-300 bg-slate-50 md:bg-transparent p-4 md:p-0 rounded-2xl">
-                        <input type="text" placeholder="Nama Barang" required class="flex-grow px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-medium">
-                        
-                        <div class="flex gap-2">
-                            <input type="number" oninput="calculateRow(this)" placeholder="Qty" required class="w-20 md:w-24 px-2 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all text-center font-black qty-input" value="1">
-                            
-                            <input type="number" oninput="calculateRow(this)" placeholder="Harga" required class="flex-grow md:w-40 px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-bold price-input">
-                            
-                            <div class="hidden md:flex items-center justify-end w-32 font-black text-slate-700 subtotal-text">Rp 0</div>
-                            
-                            <button type="button" onclick="this.closest('.item-row').remove(); calculateGrandTotal();" class="text-slate-300 hover:text-red-500 px-2 transition-colors">
-                                <i class="fas fa-times-circle text-lg"></i>
-                            </button>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="text-center">
+                            <span class="material-symbols-outlined text-slate-400 text-sm">directions_car</span>
+                            <p class="text-[10px] font-bold text-slate-700" id="time-car">-</p>
+                        </div>
+                        <div class="text-center border-x border-slate-200">
+                            <span class="material-symbols-outlined text-slate-400 text-sm">motorcycle</span>
+                            <p class="text-[10px] font-bold text-slate-700" id="time-motor">-</p>
+                        </div>
+                        <div class="text-center">
+                            <span class="material-symbols-outlined text-slate-400 text-sm">directions_walk</span>
+                            <p class="text-[10px] font-bold text-slate-700" id="time-walk">-</p>
                         </div>
                     </div>
                 </div>
-
-                <div class="mt-10 pt-6 border-t border-dashed border-slate-200 flex justify-between items-center px-2">
-                    <span class="text-sm font-black text-slate-400 uppercase tracking-widest">Total Keseluruhan</span>
-                    <span id="grandTotalDisplay" class="text-2xl font-black text-indigo-600">Rp 0</span>
-                </div>
             </div>
 
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-3xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm uppercase tracking-widest mt-8">
-                Simpan
-            </button>
-            <p id="msg" class="hidden text-center text-emerald-600 font-black bg-emerald-50 py-4 rounded-2xl border border-emerald-100 animate-bounce">
-                <i class="fas fa-check-double mr-2"></i> Transaksi Berhasil Disimpan!
-            </p>
-        </form>
-    </main>
-
-    <script>
-        function formatRupiah(number) {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-        }
-
-        function calculateRow(input) {
-            const row = input.closest('.item-row');
-            const qty = row.querySelector('.qty-input').value || 0;
-            const price = row.querySelector('.price-input').value || 0;
-            const subtotal = qty * price;
-            
-            row.querySelector('.subtotal-text').innerText = formatRupiah(subtotal);
-            calculateGrandTotal();
-        }
-
-        function calculateGrandTotal() {
-            let total = 0;
-            document.querySelectorAll('.item-row').forEach(row => {
-                const qty = row.querySelector('.qty-input').value || 0;
-                const price = row.querySelector('.price-input').value || 0;
-                total += (qty * price);
-            });
-            document.getElementById('grandTotalDisplay').innerText = formatRupiah(total);
-        }
-
-        function addItemRow() {
-            const container = document.getElementById('itemsContainer');
-            const newRow = document.createElement('div');
-            newRow.className = 'flex flex-col md:flex-row gap-3 item-row animate-in slide-in-from-top-2 duration-300 bg-slate-50 md:bg-transparent p-4 md:p-0 rounded-2xl';
-            newRow.innerHTML = `
-                <input type="text" placeholder="Nama Barang" required class="flex-grow px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-medium">
-                <div class="flex gap-2">
-                    <input type="number" oninput="calculateRow(this)" placeholder="Qty" required class="w-20 md:w-24 px-2 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all text-center font-black qty-input" value="1">
-                    <input type="number" oninput="calculateRow(this)" placeholder="Harga" required class="flex-grow md:w-40 px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all font-bold price-input">
-                    <div class="hidden md:flex items-center justify-end w-32 font-black text-slate-700 subtotal-text">Rp 0</div>
-                    <button type="button" onclick="this.closest('.item-row').remove(); calculateGrandTotal();" class="text-slate-300 hover:text-red-500 px-2 transition-colors">
-                        <i class="fas fa-times-circle text-lg"></i>
-                    </button>
+            <div id="manual-list-wrap" class="mb-6 hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Marker Manual</h3>
+                    <span class="text-[10px] font-bold text-slate-400" id="manual-list-count"></span>
                 </div>
-            `;
-            container.appendChild(newRow);
+                <div id="manual-list" class="space-y-2"></div>
+            </div>
+
+            <div id="poi-results-wrap" class="hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest" id="poi-results-title">Hasil Terdekat</h3>
+                    <span class="text-[10px] font-bold text-slate-400" id="poi-results-count"></span>
+                </div>
+                <div id="poi-results-list" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script>
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' });
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
+
+        const map = L.map('map', {
+            center: [-6.2088, 106.8456],
+            zoom: 13,
+            zoomControl: false,
+            layers: [osm],
+            dragging: false
+        });
+
+        L.control.layers({"Standard": osm, "Satelit": satellite}, null, { position: 'bottomright' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        let myLocation = null;
+        let myLocationMarker = null;
+        let markerList = [];   // { id, marker, label, addr }
+        let poiMarkers = [];   // { id, marker, item }
+        let lastPoiConfig = null;
+        let routingControl = null;
+        let isDragging = false;
+        let lastSelectedLatLng = null;
+        let searchLoading = false;
+        let legendOpen = false;
+        let selectedProfile = 'car'; // car | motor | walk
+        let navRoute = null;
+        let navInstructions = [];
+        let navCurrentIndex = 0;
+        let navWatchId = null;
+        let voiceOn = true;
+
+        const CATEGORY_CONFIG = {
+            restaurant: { label: 'Kuliner', color: '#ea580c', icon: 'restaurant', overpassFilter: '["amenity"~"restaurant|cafe|fast_food|food_court"]' },
+            fuel:       { label: 'SPBU',    color: '#2563eb', icon: 'local_gas_station', overpassFilter: '["amenity"="fuel"]' },
+            worship:    { label: 'Masjid',  color: '#16a34a', icon: 'mosque', overpassFilter: '["amenity"="place_of_worship"]["religion"="muslim"]' },
+            hotel:      { label: 'Hotel',   color: '#9333ea', icon: 'hotel', overpassFilter: '["tourism"~"hotel|guest_house|motel"]' }
+        };
+
+        // ---------- Kamus terjemahan instruksi rute (OSRM/Leaflet Routing Machine -> Bahasa Indonesia) ----------
+        // Library rute mengembalikan instruksi (instr.text) dalam Bahasa Inggris secara default.
+        // Fungsi ini menyusun ulang kalimat instruksi dalam Bahasa Indonesia berdasarkan field instr.type,
+        // instr.road, dan instr.exit, tanpa mengubah logika navigasi apa pun.
+        function translateInstruction(instr) {
+            if (!instr) return 'Lanjutkan perjalanan';
+            const road = instr.road ? ` di ${instr.road}` : '';
+            const exit = instr.exit ? `, ambil jalan keluar ke-${instr.exit}` : '';
+            const templates = {
+                'Head': `Mulai perjalanan${road}`,
+                'Continue': `Lanjutkan lurus${road}`,
+                'Straight': `Lurus terus${road}`,
+                'SlightRight': `Belok sedikit ke kanan${road}`,
+                'Right': `Belok kanan${road}`,
+                'SharpRight': `Belok tajam ke kanan${road}`,
+                'TurnAround': `Putar balik${road}`,
+                'SharpLeft': `Belok tajam ke kiri${road}`,
+                'Left': `Belok kiri${road}`,
+                'SlightLeft': `Belok sedikit ke kiri${road}`,
+                'WaypointReached': `Anda tiba di titik tujuan`,
+                'Roundabout': `Masuk bundaran${exit}${road}`,
+                'DestinationReached': `Anda telah tiba di tujuan`
+            };
+            return templates[instr.type] || `Lanjutkan perjalanan${road}`;
         }
 
-        document.getElementById('orderForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const items = [];
-            let grandTotal = 0;
+        function uid() { return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
 
-            document.querySelectorAll('.item-row').forEach(row => {
-                const inputs = row.querySelectorAll('input');
-                const qty = parseFloat(inputs[1].value);
-                const price = parseFloat(inputs[2].value);
-                const subtotal = qty * price;
-                
-                items.push({ 
-                    name: inputs[0].value, 
-                    qty: qty, 
-                    price: price,
-                    subtotal: subtotal 
+        function showToast(msg, duration = 2600) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+        }
+
+        function setLoading(on) {
+            document.getElementById('loading-indicator').classList.toggle('hidden', !on);
+        }
+
+        function toggleLegend() {
+            legendOpen = !legendOpen;
+            document.getElementById('legend-panel').classList.toggle('hidden-legend', !legendOpen);
+        }
+
+        map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true, timeout: 10000 });
+
+        map.on('locationfound', (e) => {
+            myLocation = e.latlng;
+            placeMyLocationMarker(e.latlng);
+        });
+
+        map.on('locationerror', () => {
+            showToast("Gagal mengambil lokasi. Menggunakan lokasi default.");
+            const fallback = [-7.2575, 112.7521];
+            map.setView(fallback, 13);
+            myLocation = L.latLng(fallback[0], fallback[1]);
+            L.marker(fallback).addTo(map).bindPopup("Lokasi default (GPS tidak aktif)").openPopup();
+        });
+
+        function placeMyLocationMarker(latlng) {
+            if (myLocationMarker) map.removeLayer(myLocationMarker);
+            const html = `
+                <div style="position:relative;width:20px;height:20px;">
+                    <div class="pulse-ring" style="position:absolute;inset:0;border-radius:50%;background:#3b82f6;"></div>
+                    <div style="position:absolute;inset:4px;border-radius:50%;background:#2563eb;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>
+                </div>`;
+            myLocationMarker = L.marker(latlng, {
+                icon: L.divIcon({ className: '', html, iconSize: [20, 20], iconAnchor: [10, 10] }),
+                zIndexOffset: 1000
+            }).addTo(map).bindPopup("Anda di sini");
+        }
+
+        function locateMe() {
+            showToast("Mencari lokasi Anda...");
+            map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true, timeout: 10000 });
+        }
+
+        function poiDivIcon(color, iconName) {
+            return L.divIcon({
+                className: '',
+                html: `<div class="poi-icon-wrap" style="background:${color};"><span class="material-symbols-outlined">${iconName}</span></div>`,
+                iconSize: [34, 34], iconAnchor: [17, 30], popupAnchor: [0, -30]
+            });
+        }
+
+        function manualDivIcon() {
+            return L.divIcon({
+                className: '',
+                html: `<div class="manual-icon-wrap"><span class="material-symbols-outlined">push_pin</span></div>`,
+                iconSize: [32, 32], iconAnchor: [16, 28], popupAnchor: [0, -28]
+            });
+        }
+
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.asin(Math.sqrt(a));
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function addLocation(lat, lng, label = "Lokasi Baru") {
+            const id = uid();
+            const newMarker = L.marker([lat, lng], { icon: manualDivIcon() }).addTo(map);
+            lastSelectedLatLng = { lat, lng };
+
+            const entry = { id, marker: newMarker, label, addr: '' };
+            markerList.push(entry);
+
+            newMarker.bindPopup(buildManualPopup(id, label, 'Memuat alamat...')).openPopup();
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(res => res.json())
+                .then(data => {
+                    const addr = data.display_name || label;
+                    entry.addr = addr;
+                    newMarker.setPopupContent(buildManualPopup(id, label, addr));
+                    document.getElementById('address-text').textContent = addr;
+                    renderManualList();
+                })
+                .catch(() => {
+                    entry.addr = label;
+                    newMarker.setPopupContent(buildManualPopup(id, label, ''));
+                    document.getElementById('address-text').textContent = label;
+                    renderManualList();
                 });
-                grandTotal += subtotal;
+
+            newMarker.on('click', () => {
+                lastSelectedLatLng = { lat, lng };
             });
 
-            const orders = JSON.parse(localStorage.getItem('warehouse_orders')) || [];
-            const newOrder = {
-                id: Math.floor(100000 + Math.random() * 900000),
-                supplier: document.getElementById('supplier').value,
-                sales: document.getElementById('sales').value,
-                phone: document.getElementById('phone').value,
-                items: items,
-                total: grandTotal,
-                date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-            };
+            updateMarkerCount();
+            renderManualList();
+            document.getElementById('status-text').textContent = "Lokasi dipilih. Klik tombol rute jika ingin navigasi.";
+        }
 
-            orders.push(newOrder);
-            localStorage.setItem('warehouse_orders', JSON.stringify(orders));
-            
-            document.getElementById('orderForm').reset();
-            document.getElementById('grandTotalDisplay').innerText = "Rp 0";
-            const msg = document.getElementById('msg');
-            msg.classList.remove('hidden');
-            setTimeout(() => { msg.classList.add('hidden'); location.reload(); }, 2000);
+        function buildManualPopup(id, label, addr) {
+            return `
+                <div style="min-width:180px">
+                    <b>${escapeHtml(label)}</b><br>
+                    <span style="font-size:11px;color:#64748b">${escapeHtml(addr || '')}</span><br>
+                    <button onclick="removeManualMarker('${id}')" style="margin-top:6px;background:#fee2e2;color:#dc2626;font-weight:700;font-size:11px;padding:5px 10px;border-radius:8px;border:none;cursor:pointer;">Hapus Marker</button>
+                </div>`;
+        }
+
+        function removeManualMarker(id) {
+            const idx = markerList.findIndex(m => m.id === id);
+            if (idx === -1) return;
+            map.removeLayer(markerList[idx].marker);
+            markerList.splice(idx, 1);
+            updateMarkerCount();
+            renderManualList();
+            showToast("Marker dihapus.");
+        }
+
+        function updateMarkerCount() {
+            document.getElementById('marker-count').textContent = markerList.length;
+        }
+
+        function renderManualList() {
+            const wrap = document.getElementById('manual-list-wrap');
+            const list = document.getElementById('manual-list');
+            const count = document.getElementById('manual-list-count');
+
+            if (markerList.length === 0) {
+                wrap.classList.add('hidden');
+                list.innerHTML = '';
+                return;
+            }
+
+            count.textContent = `${markerList.length} marker`;
+            list.innerHTML = '';
+            markerList.forEach(entry => {
+                const card = document.createElement('div');
+                card.className = 'poi-card slide-up w-full bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3';
+                card.innerHTML = `
+                    <button class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-white" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)" onclick="focusManualMarker('${entry.id}')">
+                        <span class="material-symbols-outlined text-[18px]">push_pin</span>
+                    </button>
+                    <button class="min-w-0 flex-1 text-left" onclick="focusManualMarker('${entry.id}')">
+                        <p class="text-xs font-bold text-slate-800 truncate">${escapeHtml(entry.label)}</p>
+                        <p class="text-[10px] text-slate-400 font-medium truncate">${escapeHtml(entry.addr || 'Memuat alamat...')}</p>
+                    </button>
+                    <button class="del-btn shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400" onclick="removeManualMarker('${entry.id}')" title="Hapus marker">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+            wrap.classList.remove('hidden');
+        }
+
+        function focusManualMarker(id) {
+            const entry = markerList.find(m => m.id === id);
+            if (!entry) return;
+            const latlng = entry.marker.getLatLng();
+            map.setView(latlng, 17);
+            entry.marker.openPopup();
+            lastSelectedLatLng = { lat: latlng.lat, lng: latlng.lng };
+            document.getElementById('address-text').textContent = `${entry.label}${entry.addr ? ' — ' + entry.addr : ''}`;
+        }
+
+        function setProfile(profile, btnEl) {
+            selectedProfile = profile;
+            document.querySelectorAll('.profile-btn').forEach(b => {
+                b.classList.remove('bg-slate-900', 'text-white');
+                b.classList.add('bg-slate-100', 'text-slate-500');
+            });
+            btnEl.classList.remove('bg-slate-100', 'text-slate-500');
+            btnEl.classList.add('bg-slate-900', 'text-white');
+            // Jika rute sedang aktif, hitung ulang otomatis dengan profil baru
+            if (routingControl && lastSelectedLatLng) startRouting();
+        }
+
+        function startRouting() {
+            if (!myLocation) return showToast("Lokasi Anda belum dideteksi oleh GPS.");
+            if (!lastSelectedLatLng) return showToast("Pilih lokasi di peta terlebih dahulu.");
+
+            if (routingControl) map.removeControl(routingControl);
+            navRoute = null;
+
+            const osrmProfile = selectedProfile === 'walk' ? 'foot' : 'driving';
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(myLocation.lat, myLocation.lng),
+                    L.latLng(lastSelectedLatLng.lat, lastSelectedLatLng.lng)
+                ],
+                router: L.Routing.osrmv1({
+                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                    profile: osrmProfile
+                }),
+                routeWhileDragging: false,
+                addWaypoints: false,
+                lineOptions: { styles: [{ color: '#4f46e5', weight: 5 }] }
+            }).on('routesfound', function(e) {
+                const route = e.routes[0];
+                navRoute = route;
+                const distanceKm = route.summary.totalDistance / 1000;
+
+                document.getElementById('distance-info').textContent = distanceKm.toFixed(2) + " KM";
+                document.getElementById('distance-summary').textContent = distanceKm.toFixed(1) + " KM";
+
+                let carTime, motorTime, walkTime;
+                if (selectedProfile === 'walk') {
+                    walkTime = Math.round(route.summary.totalTime / 60);
+                    carTime = Math.round(walkTime / 5);
+                    motorTime = Math.round(walkTime / 4);
+                } else {
+                    carTime = Math.round(route.summary.totalTime / 60);
+                    motorTime = Math.round(carTime * 0.8);
+                    walkTime = Math.round(distanceKm * 12);
+                }
+
+                document.getElementById('time-car').textContent = formatTime(carTime);
+                document.getElementById('time-motor').textContent = formatTime(motorTime);
+                document.getElementById('time-walk').textContent = formatTime(walkTime);
+            }).on('routingerror', function() {
+                showToast("Gagal menghitung rute. Coba lagi.");
+            }).addTo(map);
+
+            if (window.innerWidth < 768) expandSheet();
+        }
+
+        // ---------- Navigasi langsung (turn-by-turn) ----------
+        function startNavigation() {
+            if (!routingControl || !navRoute) return showToast("Tampilkan rute terlebih dahulu sebelum memulai navigasi.");
+            if (!navigator.geolocation) return showToast("Perangkat tidak mendukung GPS langsung.");
+
+            navInstructions = (navRoute.instructions || []).map(i => ({ ...i, _spoken: false }));
+            navCurrentIndex = 0;
+
+            if (navInstructions.length === 0) {
+                showToast("Instruksi rute tidak tersedia untuk navigasi ini.");
+                return;
+            }
+
+            document.getElementById('nav-bar').classList.remove('hidden');
+            updateNavInstructionDisplay();
+            showToast("Navigasi dimulai. Ikuti petunjuk arah di atas.");
+            if (window.innerWidth < 768) document.getElementById('info-panel').classList.remove('expanded');
+
+            if (navWatchId !== null) navigator.geolocation.clearWatch(navWatchId);
+            navWatchId = navigator.geolocation.watchPosition(onNavPosition, () => {
+                showToast("Sinyal GPS terputus. Periksa izin lokasi.");
+            }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+        }
+
+        function stopNavigation() {
+            if (navWatchId !== null) {
+                navigator.geolocation.clearWatch(navWatchId);
+                navWatchId = null;
+            }
+            document.getElementById('nav-bar').classList.add('hidden');
+            showToast("Navigasi dihentikan.");
+        }
+
+        function onNavPosition(pos) {
+            const { latitude, longitude } = pos.coords;
+            myLocation = L.latLng(latitude, longitude);
+            placeMyLocationMarker(myLocation);
+            map.setView(myLocation, 18, { animate: true });
+
+            if (!navRoute || !navRoute.coordinates || navRoute.coordinates.length === 0) return;
+
+            let nearestIdx = 0, nearestDist = Infinity;
+            navRoute.coordinates.forEach((c, i) => {
+                const d = haversineKm(latitude, longitude, c.lat, c.lng);
+                if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+            });
+
+            while (navCurrentIndex < navInstructions.length - 1 && navInstructions[navCurrentIndex].index <= nearestIdx) {
+                navCurrentIndex++;
+            }
+
+            const lastCoord = navRoute.coordinates[navRoute.coordinates.length - 1];
+            const distToEnd = haversineKm(latitude, longitude, lastCoord.lat, lastCoord.lng);
+            if (distToEnd < 0.03) {
+                showToast("Anda telah tiba di tujuan!");
+                stopNavigation();
+                return;
+            }
+
+            updateNavInstructionDisplay();
+        }
+
+        function updateNavInstructionDisplay() {
+            if (!navInstructions.length) return;
+            const instr = navInstructions[navCurrentIndex];
+
+            const iconMap = {
+                Straight: 'straight', Continue: 'straight', Left: 'turn_left', Right: 'turn_right',
+                SharpLeft: 'turn_sharp_left', SharpRight: 'turn_sharp_right',
+                SlightLeft: 'turn_slight_left', SlightRight: 'turn_slight_right',
+                Roundabout: 'roundabout_right', DestinationReached: 'flag', WaypointReached: 'flag'
+            };
+            document.getElementById('nav-icon').textContent = iconMap[instr.type] || 'navigation';
+
+            const instructionText = translateInstruction(instr);
+            document.getElementById('nav-instruction').textContent = instructionText;
+
+            let distMeters = null;
+            const target = navRoute.coordinates[instr.index];
+            if (target && myLocation) {
+                distMeters = haversineKm(myLocation.lat, myLocation.lng, target.lat, target.lng) * 1000;
+            }
+            const distText = distMeters != null
+                ? (distMeters < 1000 ? Math.round(distMeters) + ' m' : (distMeters / 1000).toFixed(1) + ' km')
+                : '-';
+            document.getElementById('nav-subinfo').textContent = `${distText} • Langkah ${navCurrentIndex + 1}/${navInstructions.length}`;
+
+            if (voiceOn && !instr._spoken) {
+                speakInstruction(instructionText);
+                instr._spoken = true;
+            }
+        }
+
+        function speakInstruction(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'id-ID';
+                speechSynthesis.cancel();
+                speechSynthesis.speak(utter);
+            } catch (e) { /* abaikan jika tidak didukung */ }
+        }
+
+        function toggleVoice() {
+            voiceOn = !voiceOn;
+            document.querySelector('#nav-voice-btn .material-symbols-outlined').textContent = voiceOn ? 'volume_up' : 'volume_off';
+            showToast(voiceOn ? "Suara navigasi diaktifkan." : "Suara navigasi dimatikan.");
+        }
+
+        function formatTime(minutes) {
+            if (minutes < 60) return minutes + " mnt";
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return hours + " jam " + (mins > 0 ? mins + " m" : "");
+        }
+
+        async function findNearby(type, label, btnEl) {
+            if (!myLocation) return showToast("Izin lokasi diperlukan untuk mencari sekitar Anda.");
+            if (searchLoading) return;
+
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active-cat'));
+            if (btnEl) btnEl.classList.add('active-cat');
+
+            const config = CATEGORY_CONFIG[type];
+            if (!config) return;
+            lastPoiConfig = config;
+
+            searchLoading = true;
+            setLoading(true);
+            document.getElementById('status-text').textContent = `Mencari ${config.label.toLowerCase()} terdekat...`;
+            if (window.innerWidth < 768) expandSheet();
+
+            const radius = 15000;
+            const query = `
+                [out:json][timeout:20];
+                (
+                  node${config.overpassFilter}(around:${radius},${myLocation.lat},${myLocation.lng});
+                  way${config.overpassFilter}(around:${radius},${myLocation.lat},${myLocation.lng});
+                );
+                out center 30;
+            `;
+
+            try {
+                const res = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    body: 'data=' + encodeURIComponent(query)
+                });
+                if (!res.ok) throw new Error('overpass_failed');
+                const data = await res.json();
+
+                clearPoiMarkers();
+
+                const items = (data.elements || [])
+                    .map(el => {
+                        const lat = el.lat ?? el.center?.lat;
+                        const lon = el.lon ?? el.center?.lon;
+                        if (lat == null || lon == null) return null;
+                        const name = el.tags?.name || `${config.label} (tanpa nama)`;
+                        const dist = haversineKm(myLocation.lat, myLocation.lng, lat, lon);
+                        return { id: uid(), lat, lon, name, dist, tags: el.tags || {} };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => a.dist - b.dist)
+                    .slice(0, 15);
+
+                if (items.length === 0) {
+                    showToast(`Tidak ada ${config.label.toLowerCase()} dalam radius ${radius/1000} km.`);
+                    document.getElementById('status-text').textContent = "Ketuk peta untuk tambah marker";
+                    document.getElementById('poi-results-wrap').classList.add('hidden');
+                    return;
+                }
+
+                const bounds = [];
+                items.forEach(item => {
+                    const addr = [item.tags['addr:street'], item.tags['addr:housenumber'], item.tags['addr:city']].filter(Boolean).join(', ');
+                    const marker = L.marker([item.lat, item.lon], { icon: poiDivIcon(config.color, config.icon) }).addTo(map);
+                    marker.bindPopup(buildPoiPopup(item.id, item.name, addr, item.dist, config.color));
+                    marker.on('click', () => {
+                        lastSelectedLatLng = { lat: item.lat, lng: item.lon };
+                        document.getElementById('address-text').textContent = `${item.name}${addr ? ' — ' + addr : ''}`;
+                        document.getElementById('status-text').textContent = "Lokasi dipilih. Klik tombol rute jika ingin navigasi.";
+                    });
+                    poiMarkers.push({ id: item.id, marker, item });
+                    bounds.push([item.lat, item.lon]);
+                });
+
+                bounds.push([myLocation.lat, myLocation.lng]);
+                map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16 });
+
+                renderPoiList(items, config);
+
+                document.getElementById('status-text').textContent = `${items.length} ${config.label.toLowerCase()} ditemukan di sekitar Anda.`;
+                showToast(`Ditemukan ${items.length} ${config.label.toLowerCase()} akurat dalam ${radius/1000} km.`);
+
+            } catch (err) {
+                showToast("Gagal mengambil data lokasi. Coba lagi sebentar lagi.");
+                document.getElementById('status-text').textContent = "Ketuk peta untuk tambah marker";
+            } finally {
+                searchLoading = false;
+                setLoading(false);
+            }
+        }
+
+        function buildPoiPopup(id, name, addr, dist, color) {
+            return `
+                <div style="min-width:190px">
+                    <b>${escapeHtml(name)}</b><br>
+                    <span style="font-size:11px;color:#64748b">${escapeHtml(addr || 'Alamat tidak tersedia')}</span><br>
+                    <span style="font-size:11px;font-weight:700;color:${color}">${dist.toFixed(2)} km dari Anda</span><br>
+                    <button onclick="removePoiMarker('${id}')" style="margin-top:6px;background:#fee2e2;color:#dc2626;font-weight:700;font-size:11px;padding:5px 10px;border-radius:8px;border:none;cursor:pointer;">Hapus Marker</button>
+                </div>`;
+        }
+
+        function removePoiMarker(id) {
+            const idx = poiMarkers.findIndex(p => p.id === id);
+            if (idx === -1) return;
+            map.removeLayer(poiMarkers[idx].marker);
+            poiMarkers.splice(idx, 1);
+
+            if (lastPoiConfig) {
+                const remainingItems = poiMarkers.map(p => p.item);
+                if (remainingItems.length > 0) {
+                    renderPoiList(remainingItems, lastPoiConfig);
+                } else {
+                    document.getElementById('poi-results-wrap').classList.add('hidden');
+                }
+            }
+            showToast("Marker dihapus.");
+        }
+
+        function renderPoiList(items, config) {
+            const wrap = document.getElementById('poi-results-wrap');
+            const list = document.getElementById('poi-results-list');
+            const title = document.getElementById('poi-results-title');
+            const count = document.getElementById('poi-results-count');
+
+            title.textContent = `${config.label} Terdekat`;
+            count.textContent = `${items.length} hasil`;
+            list.innerHTML = '';
+
+            items.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'poi-card slide-up w-full bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3';
+                card.innerHTML = `
+                    <button class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-white" style="background:${config.color}" onclick="focusPoiMarker('${item.id}')">
+                        <span class="material-symbols-outlined text-[18px]">${config.icon}</span>
+                    </button>
+                    <button class="min-w-0 flex-1 text-left" onclick="focusPoiMarker('${item.id}')">
+                        <p class="text-xs font-bold text-slate-800 truncate">${escapeHtml(item.name)}</p>
+                        <p class="text-[10px] text-slate-400 font-medium">${item.dist.toFixed(2)} km dari Anda</p>
+                    </button>
+                    <button class="del-btn shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-slate-400" onclick="removePoiMarker('${item.id}')" title="Hapus marker">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+
+            wrap.classList.remove('hidden');
+        }
+
+        function focusPoiMarker(id) {
+            const entry = poiMarkers.find(p => p.id === id);
+            if (!entry) return;
+            map.setView([entry.item.lat, entry.item.lon], 17);
+            entry.marker.openPopup();
+            lastSelectedLatLng = { lat: entry.item.lat, lng: entry.item.lon };
+            document.getElementById('address-text').textContent = entry.item.name;
+            document.getElementById('status-text').textContent = "Lokasi dipilih. Klik tombol rute jika ingin navigasi.";
+        }
+
+        function clearPoiMarkers() {
+            poiMarkers.forEach(p => map.removeLayer(p.marker));
+            poiMarkers = [];
+        }
+
+        map.on('click', (e) => {
+            addLocation(e.latlng.lat, e.latlng.lng);
+            if (window.innerWidth < 768) expandSheet();
         });
+
+        async function searchLocation() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+
+            const btnText = document.getElementById('search-btn-text');
+            btnText.innerHTML = '<div class="spinner"></div>';
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+                const data = await res.json();
+                if (data[0]) {
+                    map.setView([data[0].lat, data[0].lon], 16);
+                    addLocation(data[0].lat, data[0].lon, query);
+                    if (window.innerWidth < 768) expandSheet();
+                } else {
+                    showToast("Lokasi tidak ditemukan. Coba kata kunci lain.");
+                }
+            } catch (err) {
+                showToast("Pencarian gagal. Periksa koneksi Anda.");
+            } finally {
+                btnText.textContent = 'Cari';
+            }
+        }
+
+        document.getElementById('search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchLocation();
+        });
+
+        function resetMarkers() {
+            stopNavigation();
+            navRoute = null;
+            navInstructions = [];
+            markerList.forEach(m => map.removeLayer(m.marker));
+            clearPoiMarkers();
+            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+            markerList = [];
+            lastSelectedLatLng = null;
+            lastPoiConfig = null;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active-cat'));
+            updateMarkerCount();
+            document.getElementById('distance-info').textContent = "-";
+            document.getElementById('distance-summary').textContent = "-";
+            document.getElementById('time-car').textContent = "-";
+            document.getElementById('time-motor').textContent = "-";
+            document.getElementById('time-walk').textContent = "-";
+            document.getElementById('address-text').textContent = "Peta dibersihkan.";
+            document.getElementById('status-text').textContent = "Ketuk peta untuk tambah marker";
+            document.getElementById('poi-results-wrap').classList.add('hidden');
+            renderManualList();
+            showToast("Peta telah direset.");
+        }
+
+        document.getElementById('toggle-drag').addEventListener('click', function() {
+            isDragging = !isDragging;
+            map.dragging[isDragging ? 'enable' : 'disable']();
+            this.innerHTML = `<span class="material-symbols-outlined text-[18px]">pan_tool</span> Geser: ${isDragging ? 'ON' : 'OFF'}`;
+            this.classList.toggle('bg-emerald-600', isDragging);
+            this.classList.toggle('bg-slate-900', !isDragging);
+        });
+
+        function toggleSheet() { document.getElementById('info-panel').classList.toggle('expanded'); }
+        function expandSheet() { document.getElementById('info-panel').classList.add('expanded'); }
     </script>
 </body>
 </html>
